@@ -1,0 +1,17 @@
+env/
+*.env
+static/
+media/
+**/__pycache__/
+*.sqlite3
+*.db
+*.pyc
+*.swp
+*.log
+*.DS_Store
+*.txt
+*.json
+vscode/
+*.tar.gz
+!requirements.txt
+**/migrations/

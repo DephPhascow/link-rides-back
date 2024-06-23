@@ -8,7 +8,7 @@ SECRET_KEY = constants.SECRET
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', constants.SITE_HOST]
+ALLOWED_HOSTS = ['localhost', constants.SITE_HOST]
 
 
 INSTALLED_APPS = [
@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'corsheaders',
     'gqlauth',
-    'defender',
+    # 'defender',
     'rest_framework',
     'djangoql',
 ]
@@ -51,7 +51,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",   
     'strawberry_django.middlewares.debug_toolbar.DebugToolbarMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    'defender.middleware.FailedLoginMiddleware',
+    # 'defender.middleware.FailedLoginMiddleware',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -90,7 +90,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "back.wsgi.application"
-ASGI_APPLICATION = "back.asgi.application"
+ASGI_APPLICATION = "back.asgi.django_application"
 
 # DATABASES = {
 #     "default": {

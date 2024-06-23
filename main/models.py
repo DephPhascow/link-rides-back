@@ -1,7 +1,7 @@
 from django.db import models
 from tinymce.models import HTMLField
 from django.contrib.auth.models import AbstractUser, Group, Permission
-
+from ool import VersionField, VersionedMixin
 from main.managers import TmpCustomManager
 
 gettext = lambda s: s
@@ -25,9 +25,9 @@ class UserModel(AbstractUser):
     last_name = models.CharField(verbose_name='Фамилия', max_length=50, blank=True, null=True)
     join_at = models.DateTimeField(verbose_name='Дата регистрации', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name='Дата обновления', auto_now=True)
-    status = models.CharField(
+    user_status = models.CharField(
         verbose_name='Статус',
-        max_length=10,
+        max_length=50,
         choices=UserStatus.choices,
         default=UserStatus.UNLEGAL
     )

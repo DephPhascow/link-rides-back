@@ -1,11 +1,22 @@
 from django.db import models
-from ool import VersionField, VersionedMixin
 from tinymce.models import HTMLField
 from django.contrib.auth.models import AbstractUser, Group, Permission
 
 from main.managers import TmpCustomManager
 
 gettext = lambda s: s
+
+
+class UserStatus(models.TextChoices):
+    LEGAL = 'LEGAL', 'Легальный'
+    UNLEGAL = 'UNLEGAL', 'Нелегальный'
+
+
+class DrivingStatus(models.TextChoices):
+    WAIT = 'WAIT', 'Ожидание'
+    DRIVE = 'DRIVE', 'Движение'
+    TAXI = 'TAXI', 'Такси'
+    REST = 'REST', 'Отдых'
 
 
 class UserModel(AbstractUser):
@@ -17,8 +28,8 @@ class UserModel(AbstractUser):
     status = models.CharField(
         verbose_name='Статус',
         max_length=10,
-        choices=[('LEGAL', 'Легальный'), ('UNLEGAL', 'Нелегальный')],
-        default='UNLEGAL'
+        choices=UserStatus.choices,
+        default=UserStatus.UNLEGAL
     )
     balance = models.DecimalField(verbose_name='Баланс', max_digits=10, decimal_places=2, default=0.00)
 
@@ -57,7 +68,7 @@ class DrivingModel(models.Model):
     status = models.CharField(
         verbose_name='Статус',
         max_length=10,
-        choices=[('WAIT', 'Ожидание'), ('DRIVE', 'Движение'), ('TAXI', 'Такси'), ('REST', 'Отдых')]
+        choices=DrivingStatus.choices
     )
 
     class Meta:

@@ -7,8 +7,7 @@ from .mutate import Mutation
 from gqlauth.core.middlewares import JwtSchema
 
 
-# schema = JwtSchema(
-schema = strawberry.Schema(
+schema = JwtSchema(
     query=Query,
     mutation=Mutation,
     subscription=Subscription,

@@ -1,9 +1,7 @@
 from django.db import models
-from tinymce.models import HTMLField
-from django.contrib.auth.models import AbstractUser, Group, Permission
-from ool import VersionField, VersionedMixin
-from main.managers import TmpCustomManager
-
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import PermissionsMixin
+from django.contrib.auth.models import Group
 gettext = lambda s: s
 
 
@@ -17,47 +15,55 @@ class DrivingStatus(models.TextChoices):
     DRIVE = 'DRIVE', 'Движение'
     TAXI = 'TAXI', 'Такси'
     REST = 'REST', 'Отдых'
+    
+class UserManager(BaseUserManager):
+    def create_user(self, tg_id, password=None, **extra_fields):
+        if not tg_id:
+            raise ValueError("The tg_id field must be set")
+        user = self.model(tg_id=tg_id, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
+    def create_superuser(self, tg_id, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
 
-class UserModel(AbstractUser):
-    tg_id = models.CharField(verbose_name='Telegram ID', max_length=50, unique=True)
+        return self.create_user(tg_id, password, **extra_fields)
+
+class UserModel(AbstractBaseUser, PermissionsMixin):
+    tg_id = models.CharField(verbose_name = "TG ID", max_length=100, unique=True)
+    password = models.CharField(verbose_name='Пароль', max_length=100)
     first_name = models.CharField(verbose_name='Имя', max_length=50, blank=True, null=True)
-    last_name = models.CharField(verbose_name='Фамилия', max_length=50, blank=True, null=True)
-    join_at = models.DateTimeField(verbose_name='Дата регистрации', auto_now_add=True)
-    updated_at = models.DateTimeField(verbose_name='Дата обновления', auto_now=True)
+    last_name = models.CharField(verbose_name='Фамилия', max_length=50, blank=True, null=True)    
+    date_joined = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+    is_active = models.BooleanField(default=True)
     user_status = models.CharField(
         verbose_name='Статус',
         max_length=50,
         choices=UserStatus.choices,
         default=UserStatus.UNLEGAL
     )
-    balance = models.DecimalField(verbose_name='Баланс', max_digits=10, decimal_places=2, default=0.00)
+    balance = models.DecimalField(verbose_name='Баланс', max_digits=10, decimal_places=2, default=0.00)    
 
-    USERNAME_FIELD = 'tg_id'
-    REQUIRED_FIELDS = ['username', 'password']
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    groups = models.ManyToManyField(Group, blank=True)
 
-    groups = models.ManyToManyField(
-        Group,
-        verbose_name='Группы',
-        blank=True,
-        help_text="Группы, к которым принадлежит этот пользователь. Пользователь получит все разрешения, предоставленные каждой из его групп.",
-        related_name='user_model_groups',
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        verbose_name="Права",
-        blank=True,
-        help_text="Конкретные разрешения для этого пользователя.",
-        related_name='user_model_user_permissions',
-        related_query_name='user',
-    )    
+    USERNAME_FIELD = "tg_id"
+    EMAIL_FIELD = "tg_id"
+    REQUIRED_FIELDS = []
+    email = None
+
+    objects = UserManager()
 
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
 
     def __str__(self):
-        return self.username
+        return f'{self.first_name} {self.last_name}'
 
 
 class DrivingModel(models.Model):
@@ -76,7 +82,7 @@ class DrivingModel(models.Model):
         verbose_name_plural = "Вождения"
 
     def __str__(self):
-        return f"Вождение {self.id} пользователем {self.user.username}"
+        return f"Вождение {self.id} пользователем {self.user.tg_id}"
 
 
 class TaxiModel(models.Model):
@@ -97,31 +103,4 @@ class TaxiModel(models.Model):
         verbose_name_plural = "Такси"
 
     def __str__(self):
-        return f"Поездка на такси {self.id} пассажиром {self.passenger.username}"
-
-
-class TmpRoleEnum(models.TextChoices):
-    SIMPLE = "SIMPLE", gettext("Простой")
-    ADVANCED = "ADVANCED", gettext("Продвинутый")
-
-
-class TmpModel(VersionedMixin, models.Model):
-    name = models.CharField(max_length=100, verbose_name=gettext("Название"))
-    description = HTMLField(max_length=100, verbose_name=gettext("Описание"))
-    role = models.CharField(max_length=100, choices=TmpRoleEnum.choices, verbose_name=gettext("Роль"), default=TmpRoleEnum.SIMPLE)
-    image = models.ImageField(upload_to='images/', verbose_name=gettext("Изображение"), blank=True, null=True)
-    version = VersionField()
-    custom_manager = TmpCustomManager()
-    objects = models.Manager()
-
-    class Meta:
-        verbose_name = "TmpModel"
-        verbose_name_plural = "TmpModels"
-        base_manager_name = 'custom_manager'    
-
-    def __str__(self):
-        return self.name
-
-    @staticmethod
-    def autocomplete_search_fields():
-        return ("id__iexact", "name__icontains",)
+        return f"Поездка на такси {self.pk} пассажиром {self.passenger.tg_id}"

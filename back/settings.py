@@ -3,12 +3,14 @@ import constants
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 from gqlauth.settings_type import GqlAuthSettings
+from strawberry.annotation import StrawberryAnnotation
+from strawberry.field import StrawberryField
 
 SECRET_KEY = constants.SECRET
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', constants.SITE_HOST]
+ALLOWED_HOSTS = ['localhost', constants.SITE_HOST, '127.0.0.1']
 
 
 INSTALLED_APPS = [
@@ -17,7 +19,7 @@ INSTALLED_APPS = [
     'adminactions',
     'django_admin_index',
     'ordered_model',
-    'grappelli',
+    'jazzmin',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -26,15 +28,19 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'strawberry_django',
     "main",
+    'channels',
     "tinymce",
     "import_export",
     'debug_toolbar',
     'corsheaders',
     'gqlauth',
-    # 'defender',
+    'defender',
     'rest_framework',
     'djangoql',
 ]
+
+DEFENDER_REDIS_URL = f'{constants.REDIS_HOST}/0'
+DEFENDER_BEHIND_REVERSE_PROXY = True
 
 AUTH_USER_MODEL = 'main.UserModel'
 
@@ -51,7 +57,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",   
     'strawberry_django.middlewares.debug_toolbar.DebugToolbarMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    # 'defender.middleware.FailedLoginMiddleware',
+    'defender.middleware.FailedLoginMiddleware',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -60,8 +66,12 @@ AUTHENTICATION_BACKENDS = [
 
 GQL_AUTH = GqlAuthSettings(
     LOGIN_REQUIRE_CAPTCHA=False,
+    ALLOW_LOGIN_NOT_VERIFIED=True,
     REGISTER_REQUIRE_CAPTCHA=False,
-    ALLOW_DELETE_ACCOUNT=True,
+    SEND_ACTIVATION_EMAIL=False,
+    LOGIN_FIELDS= [StrawberryField(python_name="tg_id", type_annotation=StrawberryAnnotation(str))],
+    REGISTER_MUTATION_FIELDS= [StrawberryField(python_name="tg_id", type_annotation=StrawberryAnnotation(str))],
+    JWT_PAYLOAD_PK=StrawberryField(python_name="tg_id", type_annotation=StrawberryAnnotation(str)),
 )
 
 CORS_ORIGIN_ALLOW_ALL = False
@@ -90,23 +100,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "back.wsgi.application"
-ASGI_APPLICATION = "back.asgi.django_application"
+ASGI_APPLICATION = 'back.asgi.application'
 
-# DATABASES = {
-#     "default": {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': constants.DB_NAME,
-#         'USER': constants.DB_LOGIN,
-#         'PASSWORD': constants.DB_PASSWORD,
-#         'HOST': constants.DB_HOST,
-#         'PORT': constants.DB_PORT
-#     }
-# }
 DATABASES = {
-    'default': {
-        #sqlite3
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    "default": {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': constants.DB_NAME,
+        'USER': constants.DB_LOGIN,
+        'PASSWORD': constants.DB_PASSWORD,
+        'HOST': constants.DB_HOST,
+        'PORT': constants.DB_PORT
     }
 }
 

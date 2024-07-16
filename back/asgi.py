@@ -1,27 +1,45 @@
 import os
-
-from main.graphql.MyGraphQL import MyGraphQL
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.urls import re_path
+from strawberry.channels import GraphQLHTTPConsumer, GraphQLWSConsumer
 from django.core.asgi import get_asgi_application
-from starlette.websockets import WebSocketDisconnect
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'back.settings')
+http = get_asgi_application()
 
 from main.graphql.scheme import schema
 
-django_application = get_asgi_application()
+from gqlauth.core.middlewares import channels_jwt_middleware
+# from main.websoket import websocket_urlpattern
+# from main.consumers import AVideoChatConnectConsumer, CConsumer
+import logging
 
-async def application(scope, receive, send):
-    if scope["type"] == "http":
-        await django_application(scope, receive, send)
-    elif scope["type"] == "websocket":
-        try:
-            from main.graphql.scheme import schema
+logger = logging.getLogger(__name__)
+logger.debug("are see me?")
+print("are see me? console")
 
-            graphql_app = MyGraphQL(schema, keep_alive=True, keep_alive_interval=5)
+graphq_websocket_urlpatterns = [
+    re_path("^graphql", channels_jwt_middleware(GraphQLWSConsumer.as_asgi(schema=schema))),
+    # re_path('^ws/chat/video/(?P<room_name>\w+)/$', AVideoChatConnectConsumer.as_asgi()),
+    # re_path('^ws/chat/c/(?P<room_name>\w+)/$', CConsumer.as_asgi())
+]
+gql_http_consumer = AuthMiddlewareStack(
+    channels_jwt_middleware(GraphQLHTTPConsumer.as_asgi(schema=schema))
+)
 
-            await graphql_app(scope, receive, send)
-        except WebSocketDisconnect:
-            pass
-    else:
-        raise NotImplementedError(f"Unknown scope type {scope['type']}")
+application = ProtocolTypeRouter(
+    {
+        "http": URLRouter(
+            [
+                re_path("^graphql", gql_http_consumer),
+                re_path("^", http),
+            ]
+        ),
+        "websocket": AuthMiddlewareStack(URLRouter(graphq_websocket_urlpatterns)),
+        # "websocket": URLRouter([
+        #     re_path(r'^ws/chat/video/(?P<room_name>\w+)/$', AVideoChatConnectConsumer.as_asgi())    
+        # ]),
+    }
+)

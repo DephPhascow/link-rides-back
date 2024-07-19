@@ -7,21 +7,28 @@ from .filters.tmp_filter import TmpFilter
 from modeltranslation.admin import TranslationAdmin
 from djangoql.admin import DjangoQLSearchMixin
 from main import forms
+from django.utils.html import format_html
+
 
 @admin.register(models.UserModel)
 class UserModelAdmin(admin.ModelAdmin):
     add_form = forms.UserModelCreationForm
     form = forms.UserModelChangeForm    
-    list_display = ('tg_id', 'first_name', 'last_name', 'date_joined', 'updated_at', 'user_status', 'balance')
+    list_display = ('tg_id', 'first_name', 'last_name', 'show_username_link', 'date_joined', 'updated_at', 'user_status', 'balance')
     list_display_links = ('tg_id', )
     list_filter = ('user_status',)
     search_fields = ('tg_id', 'first_name', 'last_name')
-    readonly_fields = ('date_joined', 'updated_at', 'balance')
+    readonly_fields = ('first_name', 'last_name', 'username', 'date_joined', 'updated_at', 'balance')
     fieldsets = (
         (None, {'fields': ('tg_id', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'user_status', 'balance')}),
+        ('Personal info', {'fields': ('user_status', 'balance')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups')}),
-    )      
+    )   
+    def show_username_link(self, obj: models.UserModel):
+        if not obj.username:
+            return '-'
+        return format_html(f"<a href='https://t.me/{obj.username}'>{obj.username}</a>")
+    show_username_link.short_description = "TG username"
 
 @admin.register(models.DrivingModel)
 class DrivingModelAdmin(admin.ModelAdmin):

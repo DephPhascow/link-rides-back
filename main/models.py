@@ -2,7 +2,11 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import Group
+
+
+
 gettext = lambda s: s
+
 
 
 class UserStatus(models.TextChoices):
@@ -36,6 +40,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(verbose_name='Пароль', max_length=100)
     first_name = models.CharField(verbose_name='Имя', max_length=50, blank=True, null=True)
     last_name = models.CharField(verbose_name='Фамилия', max_length=50, blank=True, null=True)    
+    username = models.CharField(verbose_name='Username', max_length=100, blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
     is_active = models.BooleanField(default=True)
@@ -63,12 +68,12 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = "Пользователи"
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        return f'{self.first_name} {self.last_name} ({self.tg_id})'
 
 
 class DrivingModel(models.Model):
     user = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='drivings', verbose_name='Пользователь')
-    starting_at = models.DateTimeField(verbose_name='Начало')
+    starting_at = models.DateTimeField(auto_now_add=True, verbose_name='Начало')
     latitude = models.DecimalField(verbose_name='Широта', max_digits=9, decimal_places=6)
     longitude = models.DecimalField(verbose_name='Долгота', max_digits=9, decimal_places=6)
     status = models.CharField(

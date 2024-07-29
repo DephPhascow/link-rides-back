@@ -2,8 +2,8 @@ from typing import List
 import strawberry_django
 
 from main.graphql.enums import UserDriveType
-from main.graphql.types import SettingsType, TaxiModelType
-from main.models import DrivingModel, TaxiModel
+from main.graphql.types import SettingsType, TaxiModelType, UserModelType
+from main.models import TaxiInfoModel, TaxiModel
 # from .types import TmpType
 from .permissions import IsAuthenticated
 from gqlauth.user.queries import UserQueries
@@ -12,10 +12,14 @@ from asgiref.sync import sync_to_async
 from django_constants.models import GlobalConstant
 
 @strawberry.type
-class Query(UserQueries):
+class Query:
     pass
     # tmps: list[TmpType] = strawberry_django.field(permission_classes=[IsAuthenticated], )
     
+    @strawberry_django.field(permission_classes=[IsAuthenticated], )
+    async def me(self, info) -> UserModelType:
+        return info.context["request"].user
+        
     @strawberry_django.field(permission_classes=[IsAuthenticated], )
     async def settings(self, info) -> SettingsType:
         return SettingsType(
@@ -27,7 +31,7 @@ class Query(UserQueries):
         user = info.context["request"].user
         kwargs = {}
         if type == UserDriveType.TAXI:
-            taxi = await sync_to_async(DrivingModel.objects.get)(user=user)
+            taxi = await sync_to_async(TaxiInfoModel.objects.get)(user=user)
             kwargs["taxi"] = taxi
         else:
             kwargs["passenger"] = user

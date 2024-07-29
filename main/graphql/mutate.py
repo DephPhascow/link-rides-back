@@ -5,9 +5,11 @@ from gqlauth.user import arg_mutations as mutations
 import strawberry
 from asgiref.sync import sync_to_async
 
+from main.graphql.inputs import TaxiInfoInput
 from main.graphql.permissions import IsAuthenticated
-from main.graphql.types import UserModelType
-from main.models import UserModel
+from main.graphql.types import TaxiInfoModelType, UserModelType
+from main.graphql.enums import DrivingStatus
+from main.models import TaxiInfoModel, UserModel
 
 @strawberry.type
 class Mutation:
@@ -47,3 +49,43 @@ class Mutation:
             user.username = username
         user.save()
         return user
+    
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @sync_to_async
+    def create_taxi_info_data(self, info: strawberry.Info, data: TaxiInfoInput) -> TaxiInfoModelType:
+        user: UserModel = info.context["request"].user
+        taxi_infos = user.get_taxi_infos()
+        if taxi_infos:
+            raise Exception("Произошла ошибка, у вас уже есть данные таксиста")
+        instance = TaxiInfoModel.objects.create(
+            user=user, 
+            first_name=data.first_name, 
+            last_name=data.last_name, 
+            car_brand=data.car_brand, 
+            car_model=data.car_model, 
+            car_color=data.car_color, 
+            car_number=data.car_number, 
+            year=data.year, 
+            series_license=data.series_license, 
+            date_get_license = data.date_get_license,
+            country_license=data.country_license, 
+            license_valid_until=data.license_valid_until, 
+            # photo_license=data.photo_license, 
+        )
+        ### TODO загрузить фотку
+        return instance
+    
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @sync_to_async
+    def taxi_set_my_current_location(self, info: strawberry.Info, latitude: float, longitude: float, status: DrivingStatus = None) -> TaxiInfoModelType:
+        user: UserModel = info.context["request"].user
+        taxi_infos = user.get_taxi_infos()
+        if not taxi_infos:
+            raise Exception("Вы не являетесь таксистом")
+        taxi_infos.latitude = latitude
+        taxi_infos.longitude = longitude
+        if status:
+            taxi_infos.status = status
+        taxi_infos.save()
+        return taxi_infos
+    

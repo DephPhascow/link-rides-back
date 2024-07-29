@@ -75,8 +75,8 @@ GQL_AUTH = GqlAuthSettings(
     JWT_PAYLOAD_PK=StrawberryField(python_name="tg_id", type_annotation=StrawberryAnnotation(str)),
 )
 
-CORS_ORIGIN_ALLOW_ALL = False
-CORS_ORIGIN_WHITELIST = ['http://localhost:8080']
+CORS_ORIGIN_ALLOW_ALL = True ### TODO
+CORS_ORIGIN_WHITELIST = ['http://localhost:8080', 'http://localhost:5173', 'http://127.0.0.1:5173']
 
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -155,7 +155,7 @@ STRAWBERRY_DJANGO = {
     "TYPE_DESCRIPTION_FROM_MODEL_DOCSTRING": True,
     "MUTATIONS_DEFAULT_ARGUMENT_NAME": "input",
     "MUTATIONS_DEFAULT_HANDLE_ERRORS": True,
-    "GENERATE_ENUMS_FROM_CHOICES": False,
+    "GENERATE_ENUMS_FROM_CHOICES": True,
     "MAP_AUTO_ID_AS_GLOBAL_ID": True,
 }
 

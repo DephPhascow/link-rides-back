@@ -1,3 +1,4 @@
+from typing import Optional
 import strawberry
 import strawberry_django
 from strawberry import auto
@@ -7,9 +8,10 @@ from main.graphql import filters, orders
 @strawberry_django.type(models.UserModel, fields="__all__", pagination=True, )
 class UserModelType:
     id: auto
+    get_taxi_infos: Optional["TaxiInfoModelType"]
     
-@strawberry_django.type(models.DrivingModel, fields="__all__", pagination=True, )
-class DrivingModelType:
+@strawberry_django.type(models.TaxiInfoModel, fields="__all__", pagination=True, )
+class TaxiInfoModelType:
     id: auto
     user: UserModelType
 
@@ -17,7 +19,7 @@ class DrivingModelType:
 class TaxiModelType:
     id: auto
     passenger: UserModelType
-    taxi: DrivingModelType
+    taxi: TaxiInfoModelType
     
 @strawberry.type
 class SettingsType:

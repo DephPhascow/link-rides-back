@@ -85,7 +85,19 @@ class Mutation:
         taxi_infos.latitude = latitude
         taxi_infos.longitude = longitude
         if status:
-            taxi_infos.status = status
+            taxi_infos.status = status.value
+        taxi_infos.save()
+        return taxi_infos
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @sync_to_async
+    def taxi_set_status(self, info: strawberry.Info, status: DrivingStatus) -> TaxiInfoModelType:
+        user: UserModel = info.context["request"].user
+        taxi_infos = user.get_taxi_infos()
+        if not taxi_infos:
+            raise Exception("Вы не являетесь таксистом")
+        ### TODO есть ли клиент сейчас у него
+        taxi_infos.status = status.value
         taxi_infos.save()
         return taxi_infos
     

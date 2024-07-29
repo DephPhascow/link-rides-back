@@ -57,9 +57,9 @@ class TaxiInfoModelAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
 
-admin.site.site_header = "Django Admin"
-admin.site.site_title = "Django Admin Portal"
-admin.site.index_title = "Welcome to Django Admin Portal"
+admin.site.site_header = "Link rides"
+admin.site.site_title = "Link rides Portal"
+admin.site.index_title = "Welcome to Link rides Portal"
 admin.site.site_url = "/admin/"
 
 actions.add_to_site(admin.site)

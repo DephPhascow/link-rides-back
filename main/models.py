@@ -1,6 +1,6 @@
 from decimal import Decimal
 import math
-from typing import Optional
+from typing import Dict, List, Optional, Tuple, Union
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
@@ -21,6 +21,13 @@ class DrivingStatus(models.TextChoices):
     WAIT = 'WAIT', 'Ожидание'
     DRIVE = 'DRIVE', 'Движение'
     REST = 'REST', 'Отдых'
+    
+class ApplicationStatusEnum(models.TextChoices):
+    WAIT = 'WAIT', 'Ожидание'
+    TAXI_ACCEPTED = 'TAXI_ACCEPTED', 'Такси принял заказ'
+    DRIVE = 'DRIVE', 'Движение'
+    FINISH = 'FINISH', 'Завершено'
+    CANCELED = 'CANCELED', 'Отменено'
     
 class CarColorEnum(models.TextChoices):
     BLACK = 'BLACK', 'Черный'
@@ -115,6 +122,28 @@ class TaxiInfoModel(models.Model):
     def __str__(self):
         return f"Информация о такси {self.user.tg_id}"
     
+    def find_nearby_taxis(client_coords: Tuple[float, float], tariff: "TariffModel", max_distance=10):  
+        """  
+        Находит таксистов, находящихся в пределах max_distance метров от координат клиента.  
+        
+        :param client_coords: Кортеж с координатами клиента (широта, долгота)  
+        :param max_distance: Максимальное расстояние в метрах  
+        :return: Список таксистов, находящихся в пределах max_distance  
+        """  
+        nearby_taxis: List[Dict[str, Union[TaxiInfoModel, float]]] = []  
+        taxis = TaxiInfoModel.objects.filter(tariff=tariff, status = DrivingStatus.WAIT)
+        for taxi in taxis:  
+            if taxi.latitude is not None and taxi.longitude is not None:  
+                taxi_coords = (taxi.latitude, taxi.longitude)  
+                distance = geodesic(client_coords, taxi_coords).meters  
+                if distance <= max_distance:  
+                    nearby_taxis.append({  
+                        'taxi': taxi,  
+                        'distance': distance  
+                    })  
+
+        return nearby_taxis  
+    
 
 
 class TaxiModel(models.Model):
@@ -131,7 +160,12 @@ class TaxiModel(models.Model):
     updated_at = models.DateTimeField(verbose_name='Дата обновления', auto_now=True)
     taxi_driving_at = models.DateTimeField(verbose_name='Время в пути', blank=True, null=True)
     finish_at = models.DateTimeField(verbose_name='Время окончания', blank=True, null=True)
-
+    status = models.CharField(
+        verbose_name='Статус',
+        max_length=50,
+        choices=ApplicationStatusEnum.choices,
+        default=ApplicationStatusEnum.WAIT
+    )
     class Meta:
         verbose_name = "Такси"
         verbose_name_plural = "Такси"

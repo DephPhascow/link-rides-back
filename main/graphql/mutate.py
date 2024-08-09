@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 from gqlauth.user import arg_mutations as mutations
@@ -9,7 +10,7 @@ from main.graphql.inputs import TaxiInfoInput
 from main.graphql.permissions import IsAuthenticated
 from main.graphql.types import TaxiConfirmationApplicationModelType, TaxiInfoModelType, TaxiModelType, UserModelType
 from main.graphql.enums import DrivingStatus
-from main.models import TariffModel, TaxiConfirmationApplicationModel, TaxiInfoModel, TaxiModel, UserModel
+from main.models import ApplicationStatusEnum, TariffModel, TaxiConfirmationApplicationModel, TaxiInfoModel, TaxiModel, UserModel
 from geopy.geocoders import Nominatim
 
 @strawberry.type
@@ -130,38 +131,93 @@ class Mutation:
             from_address = from_address,
             to_address = to_address,
         )
-        taxis = TaxiInfoModel.objects.filter(status=DrivingStatus.WAIT.value, tariff = need_tariff)
-        with open('appl.txt', "a", encoding="utf-8") as f:
-            f.write(f'{need_tariff} {taxis} {from_latitude}, {from_longitude}, {instance.price}, {to_latitude}, {to_longitude}, {instance.pk}\r\n')
+        taxis = TaxiInfoModel.find_nearby_taxis((from_latitude, from_longitude), need_tariff)
+        if len(taxis) == 0:
+            requests.post(
+                url = "https://linkrides.uz/bot/api/system/application/cancelled",
+                params = {
+                    "application_id": instance.pk,
+                    "client_id": instance.passenger.tg_id,
+                }
+            )
+            instance.status = ApplicationStatusEnum.CANCELED
+            return instance
         for taxi in taxis:
             res = requests.post(
                 url = "https://linkrides.uz/bot/api/system/application/new",
                 params = {
-                    "taxi_id": taxi.user.tg_id,
+                    "taxi_id": taxi['taxi'].user.tg_id,
                     "from_latitude": from_latitude,
                     "from_longitude": from_longitude,
                     "price": instance.price,
                     "to_latitude": to_latitude,
                     "to_longitude": to_longitude,
                     "application_id": instance.pk,
-                }
-                )
-            with open('appl.txt', "a", encoding="utf-8") as f:
-                f.write(f'{res.text}\r\n')            
-        
+                })        
         tmp = TaxiConfirmationApplicationModel.objects.create(
             application=instance,
         )
         tmp.taxies.add(*taxis)
-        ### TODO send to taxi
         return instance    
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     @sync_to_async
     def taxi_cancel_application(self, info: strawberry.Info, application_id: int) -> bool:
         user: UserModel = info.context["request"].user
-        user.get_taxi_infos
+        taxi_info = user.get_taxi_infos()
+        if not taxi_info:
+            raise Exception("Вы не являетесь таксистом")
         instance = TaxiConfirmationApplicationModel.objects.get(application_id=application_id)
+        if not instance:
+            raise Exception("Заявка не найдена")
+        if not instance.taxies.filter(user=taxi_info).exists():
+            raise Exception("Вы не можете отклонить этот заказ, так как он не ваш")        
         instance.taxies.remove(user.get_taxi_infos)
+        if instance.taxies.count() == 0:
+            requests.post(
+                url = "https://linkrides.uz/bot/api/system/application/cancelled",
+                params = {
+                    "application_id": instance.application.pk,
+                    "client_id": instance.application.passenger.tg_id,
+                }
+            )
+            instance.application.status = ApplicationStatusEnum.CANCELED
+            instance.application.save()
         instance.save()
+        return True
+    
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    @sync_to_async
+    def taxi_accept_application(self, info: strawberry.Info, application_id: int) -> bool:
+        user: UserModel = info.context["request"].user
+        taxi_info = user.get_taxi_infos()
+        if not taxi_info:
+            raise Exception("Вы не являетесь таксистом")
+        # TODO проверить что такси не опоздал выбор
+        instance = TaxiConfirmationApplicationModel.objects.get(application_id=application_id)
+        if not instance:
+            raise Exception("Заявка не найдена")
+        if not instance.taxies.filter(user=taxi_info).exists():
+            raise Exception("Вы не можете принять этот заказ")
+        
+        application = instance.application
+        application.taxi = user.get_taxi_infos()
+        application.taxi_driving_at = datetime.now(timezone.utc)
+        application.status = ApplicationStatusEnum.TAXI_ACCEPTED
+        requests.post(
+            url = "https://linkrides.uz/bot/api/system/application/accepted",
+            params = {
+                "application_id": instance.application.pk,
+                "client_id": instance.application.passenger.tg_id,
+                "taxi_id": taxi_info.pk,
+                "current_taxi_latitude": taxi_info.latitude,
+                "current_taxi_longitude": taxi_info.longitude,
+                "taxi_fio": f"{taxi_info.first_name} {taxi_info.last_name or ''}",
+                "car_brand": taxi_info.car_brand,
+                "car_model": taxi_info.car_model,
+                "car_color": taxi_info.car_color,
+                "car_number": taxi_info.car_number,
+            }
+        )
+        instance.delete()   
         return True

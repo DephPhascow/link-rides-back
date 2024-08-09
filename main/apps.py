@@ -12,3 +12,8 @@ class MainConfig(AppConfig):
             GlobalConstant.objects.create(
                 key="COST_PER_KM", key_type=KeyTypeChoices.FLOAT, value=1000 #
             )
+        instance = GlobalConstant.objects.filter(key="PAYMENT_FOR_ARRIVAL")
+        if not instance:
+            GlobalConstant.objects.create(
+                key="PAYMENT_FOR_ARRIVAL", key_type=KeyTypeChoices.FLOAT, value=5_000 #
+            )

@@ -7,15 +7,16 @@ from django.utils.html import format_html
 
 @admin.register(models.UserModel)
 class UserModelAdmin(UserAdmin):
-    list_display = ('tg_id', 'show_im_taxi', 'first_name', 'last_name', 'show_username_link', 'date_joined', 'updated_at', 'show_user_status')
+    list_display = ('tg_id', 'show_im_taxi', 'phone_number', 'first_name', 'last_name', 'show_username_link', 'date_joined', 'updated_at', 'show_user_status')
     list_display_links = ('tg_id', )
     list_filter = ('date_joined', 'updated_at')
     search_fields = ('tg_id', 'first_name', 'last_name', )
-    readonly_fields = ('first_name', 'last_name', 'username', 'date_joined', 'updated_at')
+    readonly_fields = ('date_joined', 'updated_at')
     fieldsets = (
-        (None, {'fields': ('tg_id', 'password', )}),
+        (None, {'fields': ('tg_id', 'password', 'first_name', 'last_name', 'username')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups')}),
     )
+    
     add_fieldsets = (
         (
             None,
@@ -42,19 +43,27 @@ class UserModelAdmin(UserAdmin):
 
 @admin.register(models.TaxiModel)
 class TaxiModelAdmin(admin.ModelAdmin):
-    list_display = ('passenger', 'taxi', 'from_latitude', 'from_longitude', 'to_latitude', 'to_longitude', 'price', 'created_at', 'updated_at', 'taxi_driving_at', 'finish_at')
+    list_display = ('passenger', 'taxi', 'need_tariff', 'from_latitude', 'from_longitude', 'to_latitude', 'to_longitude', 'show_price', 'created_at', 'updated_at', 'taxi_driving_at', 'finish_at')
     list_display_links = ('passenger', )
-    list_filter = ('price', 'created_at', 'updated_at')
+    list_filter = ('need_tariff', 'created_at', 'updated_at')
     search_fields = ('passenger__tg_id', 'taxi__user__tg_id')
     readonly_fields = ('created_at', 'updated_at')
+    def show_price(self, obj: models.TaxiModel):
+        return f"{obj.price} сум"
+    show_price.short_description = "Цена"
     
 @admin.register(models.TaxiInfoModel)
 class TaxiInfoModelAdmin(admin.ModelAdmin):
-    list_display = ('user', 'car_brand', 'car_model', 'car_color', 'car_number', 'year', 'series_license', 'country_license', 'date_get_license', 'license_valid_until', 'photo_license', 'starting_at', 'latitude', 'longitude', 'status', 'created_at', 'updated_at')
+    list_display = ('user', 'latitude', 'longitude', 'status', 'tariff', 'car_brand', 'car_model', 'car_color', 'car_number', 'year', 'series_license', 'country_license', 'date_get_license', 'license_valid_until', 'photo_license', 'starting_at', 'latitude', 'longitude', 'status', 'created_at', 'updated_at')
     list_display_links = ('user', )
     list_filter = ('status', 'car_color', 'year', 'country_license', 'starting_at', 'created_at', 'updated_at')
     search_fields = ('user__tg_id', )
     readonly_fields = ('created_at', 'updated_at')
+    
+@admin.register(models.TariffModel)
+class TariffModelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'per_one_km', 'per_one_km_before', 'is_available')
+    list_filter = ('is_available', )
 
 
 admin.site.site_header = "Link rides"

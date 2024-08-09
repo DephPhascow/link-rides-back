@@ -11,3 +11,9 @@ class DrivingStatus(Enum):
     WAIT = 'WAIT'
     DRIVE = 'DRIVE'
     REST = 'REST'
+    
+@enum
+class TopByEnum(Enum):
+    TAXI = 'TAXI'
+    PASSENGER = 'PASSENGER'
+    ALL = 'ALL'

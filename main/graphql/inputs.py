@@ -2,7 +2,7 @@ from datetime import date
 from typing import Optional
 from strawberry_django import input, partial
 from strawberry.file_uploads import Upload
-
+import strawberry 
 
 from main.models import TaxiInfoModel
 

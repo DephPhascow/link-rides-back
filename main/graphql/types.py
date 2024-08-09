@@ -20,6 +20,15 @@ class TaxiModelType:
     id: auto
     passenger: UserModelType
     taxi: TaxiInfoModelType
+    price: float
+    
+@strawberry_django.type(models.TariffModel, fields="__all__", pagination=True, )
+class TariffModelType:
+    id: auto
+    
+@strawberry_django.type(models.TaxiConfirmationApplicationModel, fields="__all__", pagination=True, )
+class TaxiConfirmationApplicationModelType:
+    id: auto
     
 @strawberry.type
 class SettingsType:

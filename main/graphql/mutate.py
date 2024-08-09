@@ -213,6 +213,8 @@ class Mutation:
                 "current_taxi_latitude": taxi_info.latitude,
                 "current_taxi_longitude": taxi_info.longitude,
                 "taxi_fio": f"{taxi_info.first_name} {taxi_info.last_name or ''}",
+                "taxi_username": taxi_info.user.username,
+                "taxi_phone_number": taxi_info.user.phone_number,
                 "car_brand": taxi_info.car_brand,
                 "car_model": taxi_info.car_model,
                 "car_color": taxi_info.car_color,

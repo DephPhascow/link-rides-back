@@ -60,4 +60,4 @@ class Query:
         elif top_type == TopByEnum.PASSENGER:
             kwargs["taxi_infos__isnull"] = True
         objects = await sync_to_async(lambda: list(UserModel.objects.filter(**kwargs)))()
-        return objects[:25]
+        return (await sync_to_async(lambda: list(sorted(objects, key=lambda x: x.count_balls(), reverse=True)))())[:10]

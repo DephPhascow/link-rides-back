@@ -8,7 +8,10 @@ from main.graphql import filters, orders
 @strawberry_django.type(models.UserModel, fields="__all__", pagination=True, )
 class UserModelType:
     id: auto
+    referrer: Optional["UserModelType"]
     get_taxi_infos: Optional["TaxiInfoModelType"]
+    count_balls: int
+
     
 @strawberry_django.type(models.TaxiInfoModel, fields="__all__", pagination=True, )
 class TaxiInfoModelType:

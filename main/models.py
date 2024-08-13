@@ -32,6 +32,10 @@ class ApplicationStatusEnum(models.TextChoices):
 class CarColorEnum(models.TextChoices):
     BLACK = 'BLACK', 'Черный'
     WHITE = 'WHITE', 'Белый'
+
+class BallTypeEnum(models.TextChoices):
+    REFERRAL = 'REFERRAL', 'Реферал'
+    DRIVE = 'DRIVE', 'Поездка'
     
 class UserManager(BaseUserManager):
     def create_user(self, tg_id: str, password=None, **extra_fields):
@@ -50,16 +54,15 @@ class UserManager(BaseUserManager):
 
 class UserModel(AbstractBaseUser, PermissionsMixin):
     tg_id = models.CharField(verbose_name = "TG ID", max_length=100, unique=True)
+    referrer = models.ForeignKey("self", on_delete=models.SET_NULL, related_name='referrals', verbose_name='Реферал', null=True, blank=True)
     password = models.CharField(verbose_name='Пароль', max_length=100)
     first_name = models.CharField(verbose_name='Имя', max_length=50, blank=True, null=True)
     last_name = models.CharField(verbose_name='Фамилия', max_length=50, blank=True, null=True)    
     username = models.CharField(verbose_name='Username', max_length=100, blank=True, null=True)
-    balls = models.DecimalField(verbose_name='Баллы', default=0, max_digits=10, decimal_places=6)
     phone_number = models.CharField(verbose_name='Номер телефона', max_length=20, blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
     is_active = models.BooleanField(default=True)
-
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, blank=True)
@@ -85,8 +88,21 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
         return UserStatus.UNLEGAL
     def get_taxi_infos(self) -> Optional["TaxiInfoModel"]:
         return getattr(self, 'taxi_infos', None)
-
     
+    def count_balls(self) -> int:
+        return sum([x.count for x in self.balls.all()])
+
+class BallModel(models.Model):
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='balls', verbose_name='Пользователь')
+    ball_type = models.CharField(
+        verbose_name='Тип баллов',
+        max_length=50,
+        choices=BallTypeEnum.choices,
+    )
+    count = models.PositiveIntegerField(verbose_name='Количество')
+    description = models.TextField(verbose_name='Описание', blank=True, null=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления', auto_now=True)
 
 
 class TaxiInfoModel(models.Model):
@@ -144,6 +160,9 @@ class TaxiInfoModel(models.Model):
 
         return nearby_taxis  
     
+    def has_current_application(self) -> bool:
+        return TaxiModel.objects.filter(taxi=self, status__in=[ApplicationStatusEnum.TAXI_ACCEPTED, ApplicationStatusEnum.DRIVE]).exists()
+    
 
 
 class TaxiModel(models.Model):
@@ -155,7 +174,7 @@ class TaxiModel(models.Model):
     to_latitude = models.FloatField(verbose_name='Широта прибытия', null=True, blank=True )
     to_longitude = models.FloatField(verbose_name='Долгота прибытия', null=True, blank=True)
     from_address = models.CharField(verbose_name='Адрес отправления', max_length=255,)
-    to_address = models.CharField(verbose_name='Адрес прибытия', max_length=255, )
+    to_address = models.CharField(verbose_name='Адрес прибытия', max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(verbose_name='Дата создания', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name='Дата обновления', auto_now=True)
     taxi_driving_at = models.DateTimeField(verbose_name='Время в пути', blank=True, null=True)

@@ -7,7 +7,7 @@ from django.utils.html import format_html
 
 @admin.register(models.UserModel)
 class UserModelAdmin(UserAdmin):
-    list_display = ('tg_id', 'show_im_taxi', 'phone_number', 'first_name', 'last_name', 'show_username_link', 'date_joined', 'updated_at', 'show_user_status')
+    list_display = ('tg_id', 'show_im_taxi', 'phone_number', 'first_name', 'last_name', 'show_username_link', 'referrer', 'date_joined', 'updated_at', 'show_user_status')
     list_display_links = ('tg_id', )
     list_filter = ('date_joined', 'updated_at')
     search_fields = ('tg_id', 'first_name', 'last_name', )
@@ -60,10 +60,23 @@ class TaxiInfoModelAdmin(admin.ModelAdmin):
     search_fields = ('user__tg_id', )
     readonly_fields = ('created_at', 'updated_at')
     
+@admin.register(models.BallModel)
+class BallModelAdmin(admin.ModelAdmin):
+    list_display = ('user', 'ball_type', 'count', 'description', 'created_at', 'updated_at', )
+    list_display_links = ('user', )
+    list_filter = ('ball_type', 'count', 'created_at', 'updated_at', )
+    search_fields = ('user__tg_id', )
+    
 @admin.register(models.TariffModel)
 class TariffModelAdmin(admin.ModelAdmin):
     list_display = ('name', 'per_one_km', 'per_one_km_before', 'is_available')
     list_filter = ('is_available', )
+@admin.register(models.TaxiConfirmationApplicationModel)
+class TaxiConfirmationApplicationModelAdmin(admin.ModelAdmin):
+    list_display = ('application', 'show_taxies',)
+
+    def show_taxies(self, obj: models.TaxiConfirmationApplicationModel):
+        return ', '.join([str(x) for x in obj.taxies.all()])
 
 
 admin.site.site_header = "Link rides"
